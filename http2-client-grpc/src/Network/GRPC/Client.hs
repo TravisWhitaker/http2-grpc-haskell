@@ -232,8 +232,11 @@ streamReply rpc v0 req handler = RPCCall rpc $ \conn stream isfc osfc encoding d
             StreamErrorEvent _ _ ->
                 lift $ throwIO (InvalidState "stream error")
             StreamDataEvent _ dat -> do
+                aaah "streamReply: addCredit"
                 liftIO $ _addCredit isfc (ByteString.length dat)
+                aaah "streamReply: consumeCredit"
                 _ <- liftIO $ _consumeCredit isfc (ByteString.length dat)
+                aaah "streamReply: updateWindow"
                 _ <- _updateWindow isfc
                 handleAllChunks decoding v1 hdrs decode dat loop
     } in do
@@ -391,8 +394,11 @@ steppedBiDiStream rpc v0 handler = RPCCall rpc $ \conn stream isfc streamFlowCon
                 StreamErrorEvent _ _ ->
                     lift $ throwIO (InvalidState "stream error")
                 StreamDataEvent _ dat -> do
+                    aaah "steppedBiDiStream: addCredit"
                     liftIO $ _addCredit isfc (ByteString.length dat)
+                    aaah "steppedBiDiStream: consumeCredit"
                     _ <- liftIO $ _consumeCredit isfc (ByteString.length dat)
+                    aaah "steppedBiDiStream: updateCredit"
                     _ <- _updateWindow isfc
                     case pushChunk decode dat of
                         Done unusedDat _ (Right val) -> do
@@ -492,8 +498,11 @@ generalHandler rpc v0 handle w0 next = RPCCall rpc $ \conn stream isfc osfc enco
                 StreamHeadersEvent _ hdrs ->
                     handle v1 (Trailers hdrs)
                 StreamDataEvent _ dat -> do
+                    aaah "generalHandler: addCredit"
                     liftIO $ _addCredit isfc (ByteString.length dat)
+                    aaah "generalhandler: consumecredit"
                     _ <- liftIO $ _consumeCredit isfc (ByteString.length dat)
+                    aaah "generalhandler: updateWindow"
                     _ <- _updateWindow isfc
                     case pushChunk decode dat of
                         Done unusedDat _ (Right val) ->
