@@ -99,6 +99,10 @@ import Network.HPACK
 import Network.HTTP2.Client hiding (next)
 import Network.HTTP2.Client.Helpers
 
+import System.IO
+
+aaah = liftIO . hPutStrLn stderr
+
 type CIHeaderList = [(CI ByteString, ByteString)]
 
 -- | A reply.
@@ -303,13 +307,17 @@ sendSingleMessage rpc msg encoding flagMod conn connectionFlowControl stream str
     let compress = _getEncodingCompression encoding
     let goUpload dat = do
             let !wanted = ByteString.length dat
+            aaah "sendSingleMessage: withdrawing stream credit"
             gotStream <- _withdrawCredit streamFlowControl wanted
+            aaah "sendSingleMessage: withdrawing conn credit"
             got       <- _withdrawCredit connectionFlowControl gotStream
             liftIO $ _receiveCredit streamFlowControl (gotStream - got)
             if got == wanted
-            then
+            then do
+                aaah "sendSingleMessage: got what we wanted"
                 sendData conn stream flagMod dat
             else do
+                aaah "sendSingleMessage: not enough!"
                 sendData conn stream id (ByteString.take got dat)
                 goUpload (ByteString.drop got dat)
     goUpload . toStrict . toLazyByteString . encodeInput rpc compress $ msg
